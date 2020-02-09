@@ -1,59 +1,39 @@
-use ext;
-use lexer;
+use lexer::*;
+use operation::{ Operations };
 
-fn next_tokens(tokens: &lexer::TokenList, pos: usize) -> lexer::TokenList {
-    tokens
-        .into_iter()
-        .filter(|&token| token.position > pos)
-        .cloned()
-        .collect()
+pub trait Parser {
+    fn parse(&self, opened_parens: bool) -> ();
 }
 
-fn sum_operation(tokens: &lexer::TokenList, mut sum: u32) -> u32 {
-    for token in tokens {
-        match token.kind {
-            lexer::TokenKind::Symbol(lexer::Symbol::LParen) |
-            lexer::TokenKind::Operator(lexer::Operator::Plus) => {
-                return sum_operation(&next_tokens(tokens, token.position), sum);
-            },
-            lexer::TokenKind::Type(lexer::Type::Int) => {
-                sum += ext::to_u32(&token.value);
-            },
-            _ => ()
-        }
-    }
-    return sum;
-}
+impl Parser for Tokens {
+    fn parse(&self, mut opened_parens: bool) -> () {
+        if self.is_empty() { return }
 
-pub fn parse(tokens: &lexer::TokenList, mut opened_parens: bool) -> () {
-    if tokens.is_empty() { return }
+        for token in self {
+            match token.kind {
+                TokenType::Symbol(Symbol::LParen) => {
+                    opened_parens = true;
 
-    for token in tokens {
-        let next_tokens: lexer::TokenList = next_tokens(tokens, token.position);
-
-        match token.kind {
-            lexer::TokenKind::Symbol(lexer::Symbol::LParen) => {
-                opened_parens = true;
-
-                return parse(&next_tokens, opened_parens);
-            },
-            lexer::TokenKind::Operator(lexer::Operator::Plus) => {
-                // TODO: gather the sub expressions and replacing them (evaluating)
-                // to a new token with the value from the result
-                println!("{}", sum_operation(&next_tokens, 0));
-                return ();
-            },
-            lexer::TokenKind::Symbol(lexer::Symbol::RParen) => {
-                if opened_parens {
-                    println!("Finished parsing the tokens.");
+                    return Parser::parse(&self.rest(token.position), opened_parens);
+                },
+                TokenType::Operator(Operator::Plus) => {
+                    // TODO: gather the sub expressions by replacing them (evaluating)
+                    // to a new token with the value from the result
+                    println!("{}", Operations::sum(&self.rest(token.position), 0));
                     return ();
-                }
-                else {
-                    // TODO: add line position
-                    println!("Parens mismatch in column: {}", token.position + 1);
-                }
-            },
-            _ => ()
+                },
+                TokenType::Symbol(Symbol::RParen) => {
+                    if opened_parens {
+                        println!("Finished parsing the tokens.");
+                        return ();
+                    }
+                    else {
+                        // TODO: add line position
+                        println!("Parens mismatch in column: {}", token.position + 1);
+                    }
+                },
+                _ => ()
+            }
         }
     }
 }

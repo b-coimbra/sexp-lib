@@ -1,4 +1,4 @@
-use parser;
+use parser::{ Parser };
 
 #[derive(Debug, Copy, Clone)]
 pub enum Operator {
@@ -21,7 +21,7 @@ pub enum Symbol {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub enum TokenKind {
+pub enum TokenType {
     Operator(Operator),
     Symbol(Symbol),
     Type(Type)
@@ -30,38 +30,62 @@ pub enum TokenKind {
 #[derive(Debug, Clone)]
 pub struct Token {
     pub value: String,
-    pub kind: TokenKind,
+    pub kind: TokenType,
     pub position: usize
 }
 
-pub type TokenList = Vec<Token>;
-
 impl Token {
-    fn new(value: String, kind: TokenKind, position: usize) -> Self {
+    fn new(value: String, kind: TokenType, position: usize) -> Self {
         Token { value, kind, position }
     }
 }
 
-pub fn tokenize(stream: String) -> Result<TokenList, ()> {
-    let mut tokens: TokenList = Vec::new();
+pub type Tokens = Vec<Token>;
 
-    let mut make_token = |value: String, kind: TokenKind, pos: usize| -> () {
+pub trait TokenStream {
+    fn rest(&self, pos: usize) -> Tokens;
+}
+
+impl TokenStream for Tokens {
+    fn rest(&self, pos: usize) -> Tokens {
+        self
+            .into_iter()
+            .filter(|&token| token.position > pos)
+            .cloned()
+            .collect()
+    }
+}
+
+pub fn tokenize(stream: String) -> Result<Tokens, ()> {
+    let mut tokens: Tokens = Vec::new();
+
+    let mut make_token = |value: String, kind: TokenType, pos: usize| -> () {
         tokens.push(Token::new(value, kind, pos));
     };
 
     for (pos, chars) in stream.chars().enumerate() {
         match chars {
-            '(' => make_token("(".to_string(), TokenKind::Symbol(Symbol::LParen), pos),
-            ')' => make_token(")".to_string(), TokenKind::Symbol(Symbol::RParen), pos),
-            '+' => make_token("+".to_string(), TokenKind::Operator(Operator::Plus), pos),
+            '(' => make_token("(".to_string(), TokenType::Symbol(Symbol::LParen), pos),
+            ')' => make_token(")".to_string(), TokenType::Symbol(Symbol::RParen), pos),
+            '+' => make_token("+".to_string(), TokenType::Operator(Operator::Plus), pos),
             other => {
                 if other == ' ' { () }
 
                 let num = other.to_digit(10);
+                // let r = &stream[pos..(pos + 1)];
 
                 match num {
                     Some(num) => {
-                        make_token(num.to_string(), TokenKind::Type(Type::Int), pos)
+                        // let mut counter = 1;
+                        // let next_num: std::option::Option<u32> = Some(stream[pos..(pos + counter)].parse().unwrap());
+
+                        // while let Some(next_number) = next_num {
+                        //     println!("{}", next_number);
+                        //     num += next_number;
+                        //     counter += 1;
+                        // }
+
+                        make_token(num.to_string(), TokenType::Type(Type::Int), pos)
                     },
                     None => ()
                 }
@@ -71,7 +95,7 @@ pub fn tokenize(stream: String) -> Result<TokenList, ()> {
 
     if tokens.len() == 0 { () }
 
-    parser::parse(&tokens, false);
+    tokens.parse(false);
 
     Ok(tokens)
 }

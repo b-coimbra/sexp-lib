@@ -5,6 +5,7 @@ use std::io::Read;
 mod lexer;
 mod parser;
 mod ext;
+mod operation;
 
 fn is_bin(path: &String) -> bool {
     if let Some(bin_name) = env::args().nth(0) {

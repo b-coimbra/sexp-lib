@@ -1,6 +1,6 @@
 * sexp-lib
 
-  Library for converting s-expression to *other formats*.
+  Library for converting s-expressions to *other formats*.
 
 ** Supported Formats
 
